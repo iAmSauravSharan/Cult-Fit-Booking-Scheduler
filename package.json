@@ -1,0 +1,13 @@
+{
+  "name": "cult-booking-bot",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Books Cult classes using GitHub Actions",
+  "type": "commonjs",
+  "scripts": {
+    "book": "node bookCultClass.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

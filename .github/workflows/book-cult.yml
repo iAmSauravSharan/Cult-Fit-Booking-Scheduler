@@ -1,0 +1,59 @@
+name: Book Cult 7AM (IST) - except Thursday
+
+on:
+  schedule:
+    # 00:01 IST == 18:31 UTC (previous day)
+    - cron: "31 18 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: book-cult-7am
+  cancel-in-progress: false
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Skip if Thursday (Asia/Kolkata)
+        shell: bash
+        run: |
+          DOW=$(TZ=Asia/Kolkata date +%u) # 1=Mon ... 4=Thu ... 7=Sun
+          echo "IST day-of-week: $DOW"
+          if [ "$DOW" = "4" ]; then
+            echo "Thursday in IST -> skipping."
+            exit 0
+          fi
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run booking
+        env:
+          # REQUIRED secrets (fill in repo Settings -> Secrets and variables -> Actions)
+          CUREFIT_ST: ${{ secrets.CUREFIT_ST }}                 # <<<FILL_ME>>>
+          CUREFIT_AT: ${{ secrets.CUREFIT_AT }}                 # <<<FILL_ME>>>
+
+          # OPTIONAL secrets
+          CUREFIT_OSNAME: ${{ secrets.CUREFIT_OSNAME }}         # default "ios" if unset
+          CUREFIT_HOST: ${{ secrets.CUREFIT_HOST }}             # default "www.cure.fit" if unset
+
+          # REQUIRED secrets for your preferences
+          CUREFIT_CENTER_ID: ${{ secrets.CUREFIT_CENTER_ID }}   # <<<FILL_ME>>> number (e.g., 45)
+          CUREFIT_WORKOUT_IDS: ${{ secrets.CUREFIT_WORKOUT_IDS }} # <<<FILL_ME>>> comma list e.g. "37,9,8"
+          CUREFIT_SLOT: ${{ secrets.CUREFIT_SLOT }}             # optional default "07:00:00"
+
+          # Behavior tuning
+          BOOKING_LOOKAHEAD_DAYS: ${{ secrets.BOOKING_LOOKAHEAD_DAYS }} # optional default 7
+          RETRY_ATTEMPTS: ${{ secrets.RETRY_ATTEMPTS }}         # optional default 6
+          RETRY_DELAY_SECONDS: ${{ secrets.RETRY_DELAY_SECONDS }} # optional default 20
+        run: node bookCultClass.js
